@@ -1,3 +1,177 @@
+# Claude Code Buddy Reroll
+
+> 🇰🇷 [한국어 가이드는 아래에 있습니다](#claude-code-buddy-reroll--한국어-가이드)
+
+Reroll your Claude Code `/buddy` companion to any species, rarity, cosmetic, and stats you want.
+
+---
+
+## How It Works
+
+Buddy is **not random** — it's deterministic. Claude hashes your identity with a fixed salt (`friend-2026-401`) using FNV-1a, then seeds a Mulberry32 PRNG to generate species, rarity, eye, hat, shiny, and stats.
+
+```
+identity + "friend-2026-401"  →  FNV-1a hash  →  Mulberry32 seed
+                                                         │
+                                        rarity / species / eye / hat / shiny / stats
+```
+
+Identity resolution order:
+```
+oauthAccount.accountUuid  ??  userID  ??  "anon"
+```
+⚠️ **Pro/Team plan users**: `accountUuid` overrides `userID`. Run `node buddy.js fix` to remove it.
+
+---
+
+## Tools
+
+| File | Purpose |
+|------|---------|
+| `buddy.js` | **Main CLI** — hunt, check, apply, and fix in one tool |
+| `buddy_worker.js` | Parallel search worker (spawned automatically by `buddy.js`) |
+
+---
+
+## Step-by-Step Usage
+
+### Step 1. Check your current state
+```bash
+cd ~/buddy-reroll
+node buddy.js check auto
+```
+Shows which identity is active and what your current buddy looks like.
+
+### Step 2. Hunt for a buddy ID
+```bash
+# Interactive mode — prompts for species, rarity, etc.
+node buddy.js hunt
+
+# Fully non-interactive example (legendary cat, crown hat, star eye, shiny, CHAOS as peak stat)
+node buddy.js hunt cat legendary --hat=crown --eye=✦ --shiny --peak=CHAOS --attempts=50000000
+
+# Auto-apply the first result found
+node buddy.js hunt cat legendary --hat=crown --shiny --apply
+```
+
+### Step 3. Preview a result
+```bash
+node buddy.js check <found-ID>
+```
+
+### Step 4. Apply the ID
+```bash
+node buddy.js apply <found-ID>
+```
+This writes the ID to `~/.claude.json` and restarts Claude automatically.
+
+### Step 5. Pro/Team users — remove accountUuid
+```bash
+node buddy.js fix
+```
+After every re-login, `accountUuid` gets written back. Run `fix` again whenever that happens, or add this alias to `~/.bashrc`:
+```bash
+alias claude='node -e "const f=require(\"os\").homedir()+\"/.claude.json\";try{const c=JSON.parse(require(\"fs\").readFileSync(f));if(c.oauthAccount?.accountUuid){delete c.oauthAccount.accountUuid;delete c.companion;require(\"fs\").writeFileSync(f,JSON.stringify(c,null,2));}}catch{}" && command claude'
+```
+
+---
+
+## `buddy.js` CLI Reference
+
+```bash
+node buddy.js                          # Interactive main menu
+node buddy.js hunt [species] [rarity] [options]
+node buddy.js check <ID|auto>
+node buddy.js apply <ID>
+node buddy.js fix
+```
+
+### hunt flags
+
+| Positional | Values |
+|-----------|--------|
+| `<species>` | `duck` `goose` `blob` `cat` `dragon` `octopus` `owl` `penguin` `turtle` `snail` `ghost` `axolotl` `capybara` `cactus` `robot` `rabbit` `mushroom` `chonk` |
+| `<rarity>` | `common` `uncommon` `rare` `epic` `legendary` |
+
+| Flag | Description |
+|------|-------------|
+| `--rarity=<rarity>` | Set rarity (alternative to positional) |
+| `--eye=<eye>` | Eye shape: `·` `✦` `×` `◉` `@` `°` |
+| `--hat=<hat>` | Hat: `none` `crown` `tophat` `propeller` `halo` `wizard` `beanie` `tinyduck` |
+| `--shiny` | Shiny only |
+| `--no-shiny` | Allow non-shiny |
+| `--peak=<STAT>` | Which stat is peak (100): `DEBUGGING` `PATIENCE` `CHAOS` `WISDOM` `SNARK` |
+| `--min-<STAT>=N` | Minimum value for a stat (e.g. `--min-CHAOS=70`) |
+| `--attempts=N` | Max attempts (10,000 – 2,000,000,000) |
+| `--apply` | Auto-apply first match and restart Claude |
+
+### Examples
+```bash
+# Interactive hunt
+node buddy.js hunt cat legendary
+
+# Non-interactive, all conditions
+node buddy.js hunt cat legendary --hat=crown --eye=✦ --shiny --peak=CHAOS --attempts=50000000
+
+# Auto-apply
+node buddy.js hunt cat legendary --hat=crown --shiny --apply
+
+# Check any ID
+node buddy.js check 1681a12f5d082fe4...
+
+# Apply without hunting
+node buddy.js apply 1681a12f5d082fe4...
+```
+
+---
+
+## All Options
+
+### Species — 18 types
+`duck` · `goose` · `blob` · `cat` · `dragon` · `octopus` · `owl` · `penguin` · `turtle` · `snail` · `ghost` · `axolotl` · `capybara` · `cactus` · `robot` · `rabbit` · `mushroom` · `chonk`
+
+### Rarity — 5 tiers
+| Tier | Probability |
+|------|------------|
+| common | 60% |
+| uncommon | 25% |
+| rare | 10% |
+| epic | 4% |
+| **legendary** | **1%** |
+
+### Eyes — 6 types
+`·` (Dot) · `✦` (Star) · `×` (Cross) · `◉` (Bullseye) · `@` (At) · `°` (Circle)
+
+### Hats — 8 types
+`none` · `crown` · `tophat` · `propeller` · `halo` · `wizard` · `beanie` · `tinyduck`  
+*(common rarity always has `none`)*
+
+### Shiny
+- **1% chance** (rolled after hat)
+- legendary + shiny ≈ 1 in 100 legendaries
+- legendary + specific species + shiny ≈ 1 in 8,600,000
+
+### Stats — 5 stats
+`DEBUGGING` / `PATIENCE` / `CHAOS` / `WISDOM` / `SNARK`
+
+Legendary stat ranges:
+- **Peak stat**: always 100
+- **Dump stat**: 40–54
+- **Others**: 50–89
+- Non-legendary floor scales with rarity (common=5, uncommon=15, rare=25, epic=35, legendary=50)
+
+---
+
+## Notes
+
+- `buddy.js apply` and `fix` modify `~/.claude.json`. A backup is saved automatically as `~/.claude.json.bak.<timestamp>`.
+- Removing `accountUuid` does **not** affect authentication (OAuth tokens handle that separately).
+- If Claude updates its salt, a new hunt will be needed.
+
+---
+
+---
+
 # Claude Code Buddy Reroll — 한국어 가이드
 
 Claude Code의 `/buddy` 컴패니언을 원하는 species + rarity로 바꾸는 도구 모음.
