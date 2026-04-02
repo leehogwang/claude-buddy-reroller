@@ -2,171 +2,143 @@
 
 > 🇰🇷 [한국어 가이드는 아래에 있습니다](#claude-code-buddy-reroll--한국어-가이드)
 
-Reroll your Claude Code `/buddy` companion to any species, rarity, cosmetic, and stats you want.
+Reroll your Claude Code `/buddy` companion to the exact species, rarity, cosmetics, and stats you want — using an interactive CLI that guides you through every step.
 
 ---
 
-## How It Works
+## Quick Start
 
-Buddy is **not random** — it's deterministic. Claude hashes your identity with a fixed salt (`friend-2026-401`) using FNV-1a, then seeds a Mulberry32 PRNG to generate species, rarity, eye, hat, shiny, and stats.
-
-```
-identity + "friend-2026-401"  →  FNV-1a hash  →  Mulberry32 seed
-                                                         │
-                                        rarity / species / eye / hat / shiny / stats
-```
-
-Identity resolution order:
-```
-oauthAccount.accountUuid  ??  userID  ??  "anon"
-```
-⚠️ **Pro/Team plan users**: `accountUuid` overrides `userID`. Run `node buddy.js fix` to remove it.
-
----
-
-## Tools
-
-| File | Purpose |
-|------|---------|
-| `buddy.js` | **Main CLI** — hunt, check, apply, and fix in one tool |
-| `buddy_worker.js` | Parallel search worker (spawned automatically by `buddy.js`) |
-
----
-
-## Step-by-Step Usage
-
-### Step 1. Check your current state
 ```bash
 cd ~/buddy-reroll
-node buddy.js check auto
+node buddy.js
 ```
-Shows which identity is active and what your current buddy looks like.
 
-### Step 2. Hunt for a buddy ID
+That's it. The CLI walks you through everything.
+
+---
+
+## How to Use
+
+### 1. Launch the CLI
+
 ```bash
-# Interactive mode — prompts for species, rarity, etc.
-node buddy.js hunt
-
-# Fully non-interactive example (legendary cat, crown hat, star eye, shiny, CHAOS as peak stat)
-node buddy.js hunt cat legendary --hat=crown --eye=✦ --shiny --peak=CHAOS --attempts=50000000
-
-# Auto-apply the first result found
-node buddy.js hunt cat legendary --hat=crown --shiny --apply
+node buddy.js
 ```
 
-### Step 3. Preview a result
-```bash
-node buddy.js check <found-ID>
+You'll see a menu like this:
+
+```
+=== Buddy Reroll ===
+1) Hunt for a buddy
+2) Check a buddy ID
+3) Apply a buddy ID
+4) Fix accountUuid (Pro/Team users)
+0) Exit
 ```
 
-### Step 4. Apply the ID
-```bash
-node buddy.js apply <found-ID>
-```
-This writes the ID to `~/.claude.json` and restarts Claude automatically.
+---
 
-### Step 5. Pro/Team users — remove accountUuid
-```bash
-node buddy.js fix
+### 2. Hunt — find a buddy you want
+
+Choose **[1] Hunt**.
+
+The CLI will ask you one question at a time:
+
 ```
-After every re-login, `accountUuid` gets written back. Run `fix` again whenever that happens, or add this alias to `~/.bashrc`:
+Species? (duck / goose / blob / cat / dragon / ...)
+Rarity?  (common / uncommon / rare / epic / legendary)
+Hat?     (none / crown / tophat / propeller / halo / wizard / beanie / tinyduck / any)
+Eye?     (· / ✦ / × / ◉ / @ / ° / any)
+Shiny?   (yes / no / any)
+Peak stat? (DEBUGGING / PATIENCE / CHAOS / WISDOM / SNARK / any)
+```
+
+Just answer each prompt. Press Enter to skip any condition and accept anything.
+
+The search runs in parallel across all your CPU cores. When a match is found, the result is shown with full stats.
+
+---
+
+### 3. Apply — set your buddy
+
+After a hunt you'll be asked which result to apply, or you can choose **[3] Apply** from the main menu and paste the ID directly.
+
+Applying writes the ID to `~/.claude.json` and restarts Claude automatically.
+
+---
+
+### 4. Check — preview any ID
+
+Choose **[2] Check** and paste an ID (or type `auto` to see your current active buddy) to preview what it looks like before committing.
+
+---
+
+### 5. Fix — for Pro/Team plan users
+
+If your buddy resets after re-login, choose **[4] Fix**. This removes `accountUuid` from `~/.claude.json`, which otherwise overrides your custom ID.
+
+> **Why does this happen?** Claude uses `accountUuid` over `userID` when both exist. Re-login writes `accountUuid` back. Running Fix removes it again.
+
+To automate this, add to `~/.bashrc`:
 ```bash
 alias claude='node -e "const f=require(\"os\").homedir()+\"/.claude.json\";try{const c=JSON.parse(require(\"fs\").readFileSync(f));if(c.oauthAccount?.accountUuid){delete c.oauthAccount.accountUuid;delete c.companion;require(\"fs\").writeFileSync(f,JSON.stringify(c,null,2));}}catch{}" && command claude'
 ```
 
 ---
 
-## `buddy.js` CLI Reference
+## How It Works (background)
 
-```bash
-node buddy.js                          # Interactive main menu
-node buddy.js hunt [species] [rarity] [options]
-node buddy.js check <ID|auto>
-node buddy.js apply <ID>
-node buddy.js fix
-```
+Buddy is **not random** — it's deterministic. Claude hashes your identity with a fixed salt (`friend-2026-401`) using FNV-1a, then drives a Mulberry32 PRNG to produce species, rarity, eye, hat, shiny, and stats.
 
-### hunt flags
-
-| Positional | Values |
-|-----------|--------|
-| `<species>` | `duck` `goose` `blob` `cat` `dragon` `octopus` `owl` `penguin` `turtle` `snail` `ghost` `axolotl` `capybara` `cactus` `robot` `rabbit` `mushroom` `chonk` |
-| `<rarity>` | `common` `uncommon` `rare` `epic` `legendary` |
-
-| Flag | Description |
-|------|-------------|
-| `--rarity=<rarity>` | Set rarity (alternative to positional) |
-| `--eye=<eye>` | Eye shape: `·` `✦` `×` `◉` `@` `°` |
-| `--hat=<hat>` | Hat: `none` `crown` `tophat` `propeller` `halo` `wizard` `beanie` `tinyduck` |
-| `--shiny` | Shiny only |
-| `--no-shiny` | Allow non-shiny |
-| `--peak=<STAT>` | Which stat is peak (100): `DEBUGGING` `PATIENCE` `CHAOS` `WISDOM` `SNARK` |
-| `--min-<STAT>=N` | Minimum value for a stat (e.g. `--min-CHAOS=70`) |
-| `--attempts=N` | Max attempts (10,000 – 2,000,000,000) |
-| `--apply` | Auto-apply first match and restart Claude |
-
-### Examples
-```bash
-# Interactive hunt
-node buddy.js hunt cat legendary
-
-# Non-interactive, all conditions
-node buddy.js hunt cat legendary --hat=crown --eye=✦ --shiny --peak=CHAOS --attempts=50000000
-
-# Auto-apply
-node buddy.js hunt cat legendary --hat=crown --shiny --apply
-
-# Check any ID
-node buddy.js check 1681a12f5d082fe4...
-
-# Apply without hunting
-node buddy.js apply 1681a12f5d082fe4...
-```
+Same identity → always the same buddy. So the tool brute-forces millions of random IDs until it finds one that produces the buddy you asked for, then writes that ID to your config.
 
 ---
 
-## All Options
+## Species, Rarity & Stats — at a glance
 
-### Species — 18 types
-`duck` · `goose` · `blob` · `cat` · `dragon` · `octopus` · `owl` · `penguin` · `turtle` · `snail` · `ghost` · `axolotl` · `capybara` · `cactus` · `robot` · `rabbit` · `mushroom` · `chonk`
+**18 species:** `duck` `goose` `blob` `cat` `dragon` `octopus` `owl` `penguin` `turtle` `snail` `ghost` `axolotl` `capybara` `cactus` `robot` `rabbit` `mushroom` `chonk`
 
-### Rarity — 5 tiers
-| Tier | Probability |
-|------|------------|
-| common | 60% |
-| uncommon | 25% |
-| rare | 10% |
-| epic | 4% |
-| **legendary** | **1%** |
+**5 rarities:** common (60%) · uncommon (25%) · rare (10%) · epic (4%) · **legendary (1%)**
 
-### Eyes — 6 types
-`·` (Dot) · `✦` (Star) · `×` (Cross) · `◉` (Bullseye) · `@` (At) · `°` (Circle)
+**6 eye shapes:** `·` `✦` `×` `◉` `@` `°`
 
-### Hats — 8 types
-`none` · `crown` · `tophat` · `propeller` · `halo` · `wizard` · `beanie` · `tinyduck`  
-*(common rarity always has `none`)*
+**8 hats:** `none` `crown` `tophat` `propeller` `halo` `wizard` `beanie` `tinyduck`
 
-### Shiny
-- **1% chance** (rolled after hat)
-- legendary + shiny ≈ 1 in 100 legendaries
-- legendary + specific species + shiny ≈ 1 in 8,600,000
+**✨ Shiny:** 1% chance — legendary + shiny ≈ 1 in 8,600,000
 
-### Stats — 5 stats
-`DEBUGGING` / `PATIENCE` / `CHAOS` / `WISDOM` / `SNARK`
+**5 stats:** `DEBUGGING` `PATIENCE` `CHAOS` `WISDOM` `SNARK`  
+Legendary ranges: peak = 100, others = 50–89, dump = 40–54
 
-Legendary stat ranges:
-- **Peak stat**: always 100
-- **Dump stat**: 40–54
-- **Others**: 50–89
-- Non-legendary floor scales with rarity (common=5, uncommon=15, rare=25, epic=35, legendary=50)
+---
+
+## Advanced: CLI Flags (skip the prompts)
+
+If you already know exactly what you want, pass everything as flags to skip the interactive questions:
+
+```bash
+# legendary cat, crown, star eye, shiny, CHAOS as the peak stat
+node buddy.js hunt cat legendary --hat=crown --eye=✦ --shiny --peak=CHAOS
+
+# same, but auto-apply the first result immediately
+node buddy.js hunt cat legendary --hat=crown --shiny --apply
+
+# require CHAOS ≥ 70 even though it's not the peak
+node buddy.js hunt cat legendary --peak=SNARK --min-CHAOS=70
+
+# check or apply by ID directly
+node buddy.js check 1681a12f5d082fe4...
+node buddy.js apply 1681a12f5d082fe4...
+```
+
+Any flag you omit still gets asked interactively — flags and prompts mix freely.
 
 ---
 
 ## Notes
 
-- `buddy.js apply` and `fix` modify `~/.claude.json`. A backup is saved automatically as `~/.claude.json.bak.<timestamp>`.
-- Removing `accountUuid` does **not** affect authentication (OAuth tokens handle that separately).
-- If Claude updates its salt, a new hunt will be needed.
+- A backup of `~/.claude.json` is saved automatically before any change (`~/.claude.json.bak.<timestamp>`).
+- Removing `accountUuid` does **not** affect authentication — OAuth tokens handle that separately.
+- If Claude updates its internal salt, a new hunt will be needed.
 
 ---
 
@@ -174,301 +146,143 @@ Legendary stat ranges:
 
 # Claude Code Buddy Reroll — 한국어 가이드
 
-Claude Code의 `/buddy` 컴패니언을 원하는 species + rarity로 바꾸는 도구 모음.
+> 🇺🇸 [English guide is above](#claude-code-buddy-reroll)
+
+Claude Code의 `/buddy` 컴패니언을 원하는 종류·레어리티·외형·스탯으로 바꿉니다.  
+모든 과정은 대화형 CLI가 안내해 줍니다.
 
 ---
 
-## 원리 요약
+## 빠른 시작
 
-Buddy는 랜덤이 아닙니다. 내 ID + 고정 salt(`friend-2026-401`)를 FNV-1a로 해시한 뒤 Mulberry32 PRNG로 생성합니다.  
-같은 ID → 항상 같은 buddy. 따라서 **원하는 buddy가 나오는 ID를 미리 찾아서 config에 적으면** 됩니다.
-
-```
-identity + "friend-2026-401"  →  FNV-1a 해시  →  Mulberry32 seed
-                                                        │
-                                              rarity / species / eye / hat / shiny / stats
-```
-
-identity 결정 순서:
-```
-oauthAccount.accountUuid  ??  userID  ??  "anon"
-```
-⚠️ **Pro/Team 플랜 사용자**는 `accountUuid`가 `userID`를 덮어씁니다. `fix.sh`로 제거 필요.
-
----
-
-## 도구 목록
-
-| 파일 | 역할 |
-|------|------|
-| `buddy.js` | **메인 CLI** — 탐색 / 확인 / 적용 / accountUuid 제거 통합 |
-| `buddy_worker.js` | 병렬 탐색 worker (buddy.js가 자동 스폰) |
-
----
-
-## 단계별 사용법
-
-### Step 1. 현재 상태 확인
 ```bash
 cd ~/buddy-reroll
-node verify.js auto
+node buddy.js
 ```
-→ 어떤 ID가 쓰이고 있는지, 현재 buddy가 뭔지 출력.
 
-### Step 2. 원하는 buddy ID 탐색
+이게 전부입니다. CLI가 차례로 질문합니다.
+
+---
+
+## 사용 방법
+
+### 1. CLI 실행
+
 ```bash
-# legendary cat 탐색 (최대 50만 시도, 보통 수초 내 완료)
-node reroll.js cat
-
-# 더 안전하게 200만 시도
-node reroll.js dragon 2000000
-
-# 모든 종을 동시에 탐색 (백그라운드)
-for s in duck goose blob cat dragon octopus owl penguin turtle snail ghost axolotl capybara cactus robot rabbit mushroom chonk; do
-  node reroll.js $s 100000 &
-done
-wait
+node buddy.js
 ```
 
-### Step 3. ID 검증
-```bash
-node verify.js <찾은_ID>
+아래와 같은 메뉴가 뜹니다:
+
 ```
-
-### Step 4. ~/.claude.json 수정
-
-**1) accountUuid 없애기 + userID 설정** (Pro/Team 사용자)
-```bash
-# 먼저 fix.sh로 accountUuid 제거
-bash fix.sh
-
-# 그다음 ~/.claude.json 에서 userID를 직접 설정
-```
-
-`~/.claude.json` 최종 형태:
-```json
-{
-  "oauthAccount": {
-    "emailAddress": "you@example.com",
-    "organizationName": "Your Plan"
-  },
-  "userID": "여기에_찾은_ID_입력"
-}
-```
-※ `accountUuid`는 없어야 하며, `companion` 필드도 있으면 삭제.
-
-**2) Free 플랜 사용자** (accountUuid 없음)
-```json
-{
-  "userID": "여기에_찾은_ID_입력"
-}
-```
-
-### Step 5. 재시작 및 확인
-```bash
-# Claude Code 재시작 후
-/buddy
+=== Buddy Reroll ===
+1) 버디 탐색 (Hunt)
+2) ID 미리보기 (Check)
+3) ID 적용 (Apply)
+4) accountUuid 제거 (Fix) — Pro/Team 사용자
+0) 종료
 ```
 
 ---
 
-## 재로그인 후 buddy가 바뀌었을 때
+### 2. Hunt — 원하는 버디 찾기
 
-재로그인하면 `accountUuid`가 다시 쓰여집니다.  
-그냥 fix.sh 다시 실행하면 됩니다:
-```bash
-bash ~/buddy-reroll/fix.sh
+**[1] Hunt** 를 선택하면 CLI가 하나씩 물어봅니다:
+
 ```
-`userID`는 재로그인해도 유지되므로 같은 레어리티의 buddy가 돌아옵니다 (이름/성격은 새로 생성됨).
+종류(species)?  duck / goose / blob / cat / dragon / ...
+레어리티?       common / uncommon / rare / epic / legendary
+모자(hat)?      none / crown / tophat / propeller / halo / wizard / beanie / tinyduck / 전부
+눈(eye)?       · / ✦ / × / ◉ / @ / ° / 전부
+Shiny?         yes / no / 전부
+Peak 스탯?     DEBUGGING / PATIENCE / CHAOS / WISDOM / SNARK / 전부
+```
 
-자동화하려면 `~/.bashrc`에 추가:
+조건이 없는 항목은 그냥 Enter를 누르면 됩니다.  
+탐색은 여러 CPU 코어를 동시에 사용하므로 대부분 수초 내에 완료됩니다.  
+결과가 나오면 스탯 전체와 외형을 보여줍니다.
+
+---
+
+### 3. Apply — 버디 적용하기
+
+Hunt 완료 후 바로 적용 여부를 묻거나, 메인 메뉴의 **[3] Apply** 에서 ID를 붙여넣어도 됩니다.
+
+적용하면 `~/.claude.json`에 ID가 저장되고 Claude가 자동으로 재시작됩니다.
+
+---
+
+### 4. Check — ID 미리보기
+
+**[2] Check** 에서 ID를 붙여넣으면 (또는 `auto` 입력 시 현재 적용된 버디를) 적용 전에 외형을 미리 볼 수 있습니다.
+
+---
+
+### 5. Fix — Pro/Team 사용자용
+
+재로그인 후 버디가 바뀌었다면 **[4] Fix** 를 실행하세요.  
+`~/.claude.json`에서 `accountUuid`를 제거합니다.
+
+> **왜 바뀌나요?** Claude는 `accountUuid`가 있으면 `userID` 대신 그걸 씁니다. 재로그인하면 `accountUuid`가 다시 생겨서 우리가 설정한 ID가 무시됩니다. Fix는 그걸 지워줍니다.
+
+재로그인할 때마다 자동으로 처리하려면 `~/.bashrc`에 추가:
 ```bash
 alias claude='node -e "const f=require(\"os\").homedir()+\"/.claude.json\";try{const c=JSON.parse(require(\"fs\").readFileSync(f));if(c.oauthAccount?.accountUuid){delete c.oauthAccount.accountUuid;delete c.companion;require(\"fs\").writeFileSync(f,JSON.stringify(c,null,2));}}catch{}" && command claude'
 ```
 
 ---
 
-## shiny / 코스메틱 / 스탯 탐색
+## 원리 (배경 지식)
 
-눈, 모자, shiny, peak 스탯, 특정 스탯 최솟값까지 원하는 조합을 탐색:
-```bash
-# 기본 탐색
-node shiny_hunt.js cat 5000000
+버디는 랜덤이 아닙니다. 내 ID + 고정 salt(`friend-2026-401`)를 FNV-1a로 해시하고 Mulberry32 PRNG로 종류·레어리티·눈·모자·shiny·스탯을 결정합니다.
 
-# 옵션 필터
-node shiny_hunt.js cat 10000000 --hat=crown           # legend cat + crown
-node shiny_hunt.js cat 10000000 --hat=crown --eye=✦   # + 시시별 눈
-node shiny_hunt.js cat 10000000 --hat=crown --shiny    # + shiny (= 기본값)
-node shiny_hunt.js cat 10000000 --no-shiny             # shiny 없이
-
-# 스탯 필터
-node shiny_hunt.js cat 10000000 --peak=CHAOS                  # CHAOS가 peak (100)
-node shiny_hunt.js cat 10000000 --peak=SNARK --min-CHAOS=70   # SNARK peak + CHAOS 70이상
-node shiny_hunt.js cat 50000000 --hat=crown --eye=✦ --peak=CHAOS  # 모두 조합
-```
-
-**`shiny_hunt.js` 전체 플래그 목록:**
-
-| 플래그 | 설명 |
-|------|------|
-| `--hat=<hat>` | 지정한 모자만 (none/crown/tophat/propeller/halo/wizard/beanie/tinyduck) |
-| `--eye=<eye>` | 지정한 눈 모양만 (`·` `✦` `×` `◉` `@` `°`) |
-| `--shiny` | shiny만 (= **기본값**) |
-| `--no-shiny` | shiny 없는 것도 허용 |
-| `--peak=<STAT>` | 해당 스탯이 peak(=100)인 것만 |
-| `--min-<STAT>=N` | 해당 스탯이 N 이상인 것만 (eg. `--min-CHAOS=70`) |
-
-**확률 표:**
-
-| 조합 | 확률 |
-|------|------|
-| Legendary + 특정 species | ~0.056% |
-| + 특정 눈 | ~0.0093% |
-| + 특정 모자 | ~0.0012% |
-| + shiny | ~0.000012% (약 860만 분의 1) |
-| + peak 스탯 지정 | ×1/5 추가 |
+같은 ID → 항상 같은 버디. 그래서 이 도구는 수백만 개의 랜덤 ID를 브루트포스로 돌려서 원하는 버디가 나오는 ID를 찾은 뒤 config에 씁니다.
 
 ---
 
-## buddy.js — 대화형 CLI 리롤러
+## 종류·레어리티·스탯 한눈에 보기
 
-`buddy.js`는 버디 탐색부터 적용까지 한 번에 처리하는 열라운 CLI입니다.  
-**CLI 플래그** 로 지정하거나, 지정 안 한 항목은 **대화형 프롬프트**로 업대어 받는 **하이브리드** 방식.
+**18종:** `duck` `goose` `blob` `cat` `dragon` `octopus` `owl` `penguin` `turtle` `snail` `ghost` `axolotl` `capybara` `cactus` `robot` `rabbit` `mushroom` `chonk`
 
-### 서브커맨드 일람
+**5단계 레어리티:** common(60%) · uncommon(25%) · rare(10%) · epic(4%) · **legendary(1%)**
+
+**눈 6종:** `·` `✦` `×` `◉` `@` `°`
+
+**모자 8종:** `none` `crown` `tophat` `propeller` `halo` `wizard` `beanie` `tinyduck`
+
+**✨ Shiny:** 1% 확률 — legendary + 특정 종 + shiny ≈ 860만 분의 1
+
+**스탯 5개:** `DEBUGGING` `PATIENCE` `CHAOS` `WISDOM` `SNARK`  
+Legendary 범위: peak = 100, 일반 = 50–89, dump = 40–54
+
+---
+
+## 고급: CLI 플래그 (프롬프트 건너뛰기)
+
+원하는 조건을 이미 알고 있다면 플래그로 직접 지정해서 질문을 생략할 수 있습니다:
 
 ```bash
-# 대화형 메인 메뉴 (전체 안내)
-node buddy.js
-
-# hunt: 탐색 (= 메인 메뉴 1번)
-node buddy.js hunt
+# legendary cat, crown 모자, 별 눈, shiny, CHAOS가 peak
 node buddy.js hunt cat legendary --hat=crown --eye=✦ --shiny --peak=CHAOS
-node buddy.js hunt cat legendary --hat=crown --shiny --apply     # 첫 번째 결과 자동 적용
 
-# check: buddy 미리보기 (수정 없음)
-node buddy.js check <ID>
-
-# apply: ID 즉시 적용 + Claude 자동 재시작
-node buddy.js apply <ID>
-
-# fix: accountUuid 제거
-node buddy.js fix
-```
-
-### hunt 플래그 전체 목록
-
-```
-node buddy.js hunt [species] [rarity] [options]
-```
-
-| 포지셔널 인수 | 설명 |
-|------|------|
-| `<species>` | duck goose blob cat dragon octopus owl penguin turtle snail ghost axolotl capybara cactus robot rabbit mushroom chonk |
-| `<rarity>` | common uncommon rare epic **legendary** |
-
-| 플래그 | 설명 |
-|------|------|
-| `--rarity=<rarity>` | 레어리티 지정 (포지셔널 대신 사용 가능) |
-| `--eye=<eye>` | 눈 모양 (`·` `✦` `×` `◉` `@` `°`) |
-| `--hat=<hat>` | 모자 (none/crown/tophat/propeller/halo/wizard/beanie/tinyduck) |
-| `--shiny` | shiny인 것만 |
-| `--no-shiny` | shiny 없는 것도 허용 |
-| `--peak=<STAT>` | Peak 스탯 지정 (DEBUGGING/PATIENCE/CHAOS/WISDOM/SNARK) |
-| `--min-<STAT>=N` | 해당 스탯 최솟값 (`--min-CHAOS=70` 등) |
-| `--attempts=N` | 루프 최대 횟수 (10,000 ~ 200,000,000) |
-| `--apply` | 마족하는 첫 번째 결과를 자동으로 적용 + Claude 재시작 |
-
-### 실제 예시
-
-```bash
-# 1) 대화형 (species/rarity만 지정, 나머지는 프롬프트)
-node buddy.js hunt cat legendary
-
-# 2) 완전 비대화형 (질문 없이 바로 타)
-node buddy.js hunt cat legendary --hat=crown --eye=✦ --shiny --peak=CHAOS --attempts=50000000
-
-# 3) 자동 적용 (첫 번째 결과가 나오면 즉시 ~/.claude.json 수정)
+# 첫 번째 결과를 바로 적용
 node buddy.js hunt cat legendary --hat=crown --shiny --apply
 
-# 4) 미리보기
-node buddy.js check 1681a12f5d082fe4...
+# SNARK이 peak이고 CHAOS도 70 이상
+node buddy.js hunt cat legendary --peak=SNARK --min-CHAOS=70
 
-# 5) 입마없는 삵이화 (ID만 알면 바로 적용)
+# ID로 직접 확인/적용
+node buddy.js check 1681a12f5d082fe4...
 node buddy.js apply 1681a12f5d082fe4...
 ```
 
-> ⚠️ `--apply`는 마지막에 한 번만 적용 원하면 `--apply` 없이 돌리고 탐색 완료 후 이전 결과나 원하는 번호를 직접 `node buddy.js apply <ID>`가 더 안전합니다.
-
----
-
-## 전체 옵션 목록
-
-### 종류 (Species) — 18종
-| | | | |
-|---|---|---|---|
-| duck | goose | blob | cat |
-| dragon | octopus | owl | penguin |
-| turtle | snail | ghost | axolotl |
-| capybara | cactus | robot | rabbit |
-| mushroom | chonk | | |
-
-### 레어리티 (Rarity) — 5단계
-| 등급 | 확률 |
-|------|------|
-| common | 60% |
-| uncommon | 25% |
-| rare | 10% |
-| epic | 4% |
-| **legendary** | **1%** |
-
-### 눈 (Eye) — 6종
-| 기호 | 이름 |
-|------|------|
-| `·` | Dot |
-| `✦` | Star |
-| `×` | Cross |
-| `◉` | Bullseye |
-| `@` | At sign |
-| `°` | Circle |
-
-### 모자 (Hat) — 8종 (common은 항상 none)
-| 이름 | 모양 |
-|------|------|
-| none | — |
-| crown | `\^^^/` |
-| tophat | `[___]` |
-| propeller | `-+-` |
-| halo | `( )` |
-| wizard | `/^\` |
-| beanie | `(___)` |
-| tinyduck | 머리 위에 아기 오리 |
-
-### ✨ Shiny
-- 확률 **1%** (hat 뽑기 다음에 롤)
-- legendary + shiny = **약 100분의 1** (legendary 중에서)
-- legendary + 특정 종 + shiny = **약 860만 분의 1**
-
-### 스탯 (Stats) — 5개
-`DEBUGGING` / `PATIENCE` / `CHAOS` / `WISDOM` / `SNARK`
-
-레어리티별 스탯 기본값(floor):
-
-| 등급 | floor |
-|------|-------|
-| common | 5 |
-| uncommon | 15 |
-| rare | 25 |
-| epic | 35 |
-| **legendary** | **50** |
-
-peak 스탯은 floor+50~79, dump 스탯은 floor-10~4, 나머지는 floor~floor+39.
+플래그를 지정한 항목은 질문을 건너뛰고, 지정하지 않은 항목은 여전히 대화형으로 묻습니다.
 
 ---
 
 ## 종 외형 (ASCII Sprites)
 
-화면에서 `{E}` 자리에 내 눈 기호가 들어갑니다. 아래는 기본 눈(`·`) 기준 rest 프레임.
+눈 기호는 실제 설정값으로 치환됩니다. 아래는 기본 눈(`·`) 기준.
 
 ```
 duck                goose               blob
@@ -508,28 +322,18 @@ rabbit              mushroom            chonk
  (")__(")            |____|            `------´
 ```
 
-### 모자 착용 시 외형 (첫 줄에 모자 추가)
-
+모자 착용 시 첫 줄에 추가:
 ```
 crown    tophat   propeller  halo     wizard   beanie   tinyduck
 \^^^/    [___]      -+-      ( )      /^\      (___)     ,>
 ```
 
-### 레어리티별 색상 (터미널 렌더 기준)
-
-| 등급 | 색상 |
-|------|------|
-| common | 회색 |
-| uncommon | 초록 |
-| rare | 파랑 |
-| epic | 보라 |
-| **legendary** | **황금** |
+레어리티별 색상: common 회색 · uncommon 초록 · rare 파랑 · epic 보라 · **legendary 황금**
 
 ---
 
 ## 주의사항
 
-- 이 도구들은 **어떤 파일도 자동으로 수정하지 않습니다** (`fix.sh` 제외).
-- `fix.sh`는 실행 전 자동으로 백업을 만듭니다 (`~/.claude.json.bak.날짜시간`).
-- `accountUuid` 제거는 인증에 영향 없습니다 (인증은 OAuth 토큰이 처리).
-- Claude Code 업데이트나 salt 변경 시 reroll이 필요할 수 있습니다.
+- 적용/Fix 시 `~/.claude.json`이 수정되기 전에 자동으로 백업됩니다 (`~/.claude.json.bak.날짜시간`).
+- `accountUuid` 제거는 인증에 영향 없습니다 (OAuth 토큰이 인증을 처리).
+- Claude Code가 내부 salt를 바꾸면 다시 탐색이 필요합니다.
