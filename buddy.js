@@ -13,7 +13,7 @@ const { Worker }  = require('worker_threads');
 const { execSync, spawnSync } = require('child_process');
 
 const WORKER_FILE  = path.join(__dirname, 'buddy_worker.js');
-const NUM_WORKERS  = Math.min(os.cpus().length, 32); // 최대 32 threads
+const NUM_WORKERS  = Math.min(os.cpus().length, 64); // 최대 64 threads
 
 // ── ANSI 색상 ──────────────────────────────────────────────────────────────
 const C = {
@@ -434,13 +434,13 @@ async function huntMenu(opts = {}) {
   console.log(`예상 확률: 약 ${C.bold}${expectedStr}${C.reset} 분의 1`);
   if (expected > 1_000_000_000) {
     const hours = (expected / (NUM_WORKERS * 16500) / 3600).toFixed(1);
-    console.log(`  ${C.dim}64코어 기준 예상 시간: ~${hours}시간${C.reset}`);
+    console.log(`  ${C.dim}${NUM_WORKERS}코어 기준 예상 시간: ~${hours}시간${C.reset}`);
   }
 
-  const defMax = Math.min(Math.max(Math.round(10 / Math.max(prob, 1e-15)), 1000000), 2000000000);
+  const defMax = Math.min(Math.max(Math.round(10 / Math.max(prob, 1e-15)), 1000000), 10000000000);
   const maxAttempts = opts.attempts
-    ? Math.min(Math.max(opts.attempts, 10000), 2000000000)
-    : await askNum(`시도 횟수`, 10000, 2000000000, defMax);
+    ? Math.min(Math.max(opts.attempts, 10000), 10000000000)
+    : await askNum(`시도 횟수`, 10000, 10000000000, defMax);
   if (opts.attempts) console.log(`시도 횟수: ${C.bold}${maxAttempts.toLocaleString()}${C.reset}  ${C.dim}(인수 지정됨)${C.reset}`);
   console.log('═'.repeat(52));
   console.log(`탐색 시작... ${C.dim}(Ctrl+C 로 중단)${C.reset}  ${C.dim}(${NUM_WORKERS} 코어 병렬)${C.reset}\n`);
