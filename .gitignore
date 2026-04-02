@@ -1,0 +1,13 @@
+# 개인 설정 및 민감 정보
+MY_BUDDY.md
+
+# 백업 파일
+*.bak
+*.bak.*
+
+# Node
+node_modules/
+
+# 시스템
+.DS_Store
+*.log
