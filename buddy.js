@@ -162,8 +162,8 @@ function readConfig() {
 function getCurrentIdentity(cfg) {
   if (!cfg) return { id: null, source: '없음' };
   const uuid = cfg.oauthAccount?.accountUuid;
-  if (uuid) return { id: uuid, source: `accountUuid ${C.red}⚠️  userID를 override함${C.reset}` };
-  if (cfg.userID) return { id: cfg.userID, source: 'userID' };
+  if (uuid) return { id: uuid, source: 'accountUuid' };
+  if (cfg.userID) return { id: cfg.userID, source: `userID ${C.red}⚠️  accountUuid 없음 — credentials UUID로 쓰일 수 있음${C.reset}` };
   return { id: 'anon', source: 'anon' };
 }
 
@@ -179,9 +179,12 @@ function applyId(uid) {
   const cfg = readConfig() || {};
   const backup = CONFIG_PATH + '.bak.' + new Date().toISOString().replace(/[:.]/g, '-');
   try { fs.copyFileSync(CONFIG_PATH, backup); } catch {}
-  if (cfg.oauthAccount?.accountUuid) delete cfg.oauthAccount.accountUuid;
-  delete cfg.companion;
+  // Claude Code v2: /buddy reads oauthAccount.accountUuid first.
+  // SET it to our target UUID so it overrides the credentials.json UUID.
+  if (!cfg.oauthAccount) cfg.oauthAccount = {};
+  cfg.oauthAccount.accountUuid = uid;
   cfg.userID = uid;
+  delete cfg.companion; // clear cached name/personality so /buddy regenerates it
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
   _protect();
   return backup;
