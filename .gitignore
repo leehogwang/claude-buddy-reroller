@@ -11,3 +11,6 @@ node_modules/
 # 시스템
 .DS_Store
 *.log
+
+# 컴파일된 바이너리
+wyhash_test

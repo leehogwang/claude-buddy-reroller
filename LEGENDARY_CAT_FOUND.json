@@ -1,0 +1,19 @@
+{
+  "uuid": "d1c87e7d-abb4-4f20-bf0b-db260ee876c7",
+  "seed": 3743217430,
+  "rarity": "legendary",
+  "species": "cat",
+  "eye": "·",
+  "hat": "tophat",
+  "shiny": true,
+  "stats": {
+    "DEBUGGING": 100,
+    "PATIENCE": 83,
+    "CHAOS": 68,
+    "WISDOM": 45,
+    "SNARK": 65
+  },
+  "peak": "DEBUGGING",
+  "dump": "WISDOM",
+  "found_at": "2026-04-03T09:52:05.186Z"
+}
