@@ -9,7 +9,7 @@ const SALT           = 'friend-2026-401';
 const SPECIES        = ['duck','goose','blob','cat','dragon','octopus','owl','penguin',
                         'turtle','snail','ghost','axolotl','capybara','cactus','robot',
                         'rabbit','mushroom','chonk'];
-const RARITIES       = ['legendary','epic','rare','uncommon','common'];
+const RARITIES       = ['common','uncommon','rare','epic','legendary']; // Claude Code 순서
 const RARITY_WEIGHTS = { legendary:1, epic:4, rare:10, uncommon:25, common:60 };
 const RARITY_FLOOR   = { common:5, uncommon:15, rare:25, epic:35, legendary:50 };
 const EYES           = ['·','✦','×','◉','@','°'];
@@ -114,7 +114,7 @@ for (let i = 0; i < count; i++) {
   if (species !== targetSpecies) continue;
 
   const eye   = pick(rng, EYES);
-  const hat   = pick(rng, HATS);
+  const hat   = rarity === 'common' ? 'none' : pick(rng, HATS); // common: hat rng 소비 없음
   const shiny = rng() < 0.01;
   const { stats, peak: peakStat } = rollStats(rng, rarity);
 

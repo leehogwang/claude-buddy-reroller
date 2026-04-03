@@ -17,7 +17,7 @@ if (!isMainThread) {
   const SPECIES = ['duck','goose','blob','cat','dragon','octopus','owl','penguin',
                    'turtle','snail','ghost','axolotl','capybara','cactus','robot',
                    'rabbit','mushroom','chonk'];
-  const RARITIES = ['legendary','epic','rare','uncommon','common'];
+  const RARITIES = ['common','uncommon','rare','epic','legendary']; // Claude Code 순서
   const RARITY_WEIGHTS = { legendary:1, epic:4, rare:10, uncommon:25, common:60 };
   const RARITY_FLOOR   = { common:5, uncommon:15, rare:25, epic:35, legendary:50 };
   const EYES   = ['·','✦','×','◉','@','°'];
@@ -50,7 +50,7 @@ if (!isMainThread) {
     const sp   = pick(rng, SPECIES);
     if (sp !== 'cat') continue;
     const eye  = pick(rng, EYES);
-    const hat  = pick(rng, HATS);
+    const hat  = pick(rng, HATS); // legendary: hat 있음
     const shy  = rng() < 0.01;
     if (wantShiny && !shy) continue;
     const { stats, peak, dump } = rollStats(rng, rar);

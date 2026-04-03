@@ -1,19 +1,19 @@
 {
-  "uuid": "d1c87e7d-abb4-4f20-bf0b-db260ee876c7",
-  "seed": 3743217430,
+  "uuid": "8dc39863-1c1c-466c-88c1-375a90a5e2fa",
+  "seed": 4180783618,
   "rarity": "legendary",
   "species": "cat",
   "eye": "·",
-  "hat": "tophat",
+  "hat": "crown",
   "shiny": true,
   "stats": {
-    "DEBUGGING": 100,
-    "PATIENCE": 83,
-    "CHAOS": 68,
-    "WISDOM": 45,
-    "SNARK": 65
+    "DEBUGGING": 58,
+    "PATIENCE": 45,
+    "CHAOS": 57,
+    "WISDOM": 100,
+    "SNARK": 82
   },
-  "peak": "DEBUGGING",
-  "dump": "WISDOM",
-  "found_at": "2026-04-03T09:52:05.186Z"
+  "peak": "WISDOM",
+  "dump": "PATIENCE",
+  "found_at": "2026-04-03T10:18:21.094Z"
 }

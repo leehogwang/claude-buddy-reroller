@@ -37,7 +37,7 @@ const SALT           = 'friend-2026-401';
 const SPECIES        = ['duck','goose','blob','cat','dragon','octopus','owl','penguin',
                         'turtle','snail','ghost','axolotl','capybara','cactus','robot',
                         'rabbit','mushroom','chonk'];
-const RARITIES       = ['legendary','epic','rare','uncommon','common'];
+const RARITIES       = ['common','uncommon','rare','epic','legendary']; // Claude Code 순서: common 먼저
 const RARITY_WEIGHTS = { legendary:1, epic:4, rare:10, uncommon:25, common:60 };
 const RARITY_FLOOR   = { common:5, uncommon:15, rare:25, epic:35, legendary:50 };
 const EYES           = ['·','✦','×','◉','@','°'];
@@ -108,6 +108,7 @@ function wyHash32(str) {
 function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
 
 function rollRarity(rng) {
+  // Claude Code YI4: rng()*100, common(60) 먼저 차감 → legendary는 rng>0.99일 때만
   let roll = rng() * 100;
   for (const r of RARITIES) { roll -= RARITY_WEIGHTS[r]; if (roll < 0) return r; }
   return 'common';
@@ -132,7 +133,7 @@ function getBuddy(uid) {
   const rarity = rollRarity(rng);
   const species = pick(rng, SPECIES);
   const eye    = pick(rng, EYES);
-  const hat    = pick(rng, HATS);
+  const hat    = rarity === 'common' ? 'none' : pick(rng, HATS); // Claude Code: common → hat 없음 (rng 소비 안 함)
   const shiny  = rng() < 0.01;
   const { stats, peak, dump } = rollStats(rng, rarity);
   return { rarity, species, eye, hat, shiny, stats, peak, dump };
